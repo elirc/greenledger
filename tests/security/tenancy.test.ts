@@ -9,7 +9,13 @@
  * Orchestrator-only (shared test DB): `pnpm test:integration`.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import * as cropsQueries from "@/modules/crops/queries";
 import * as farmQueries from "@/modules/farm/queries";
+import * as itemsQueries from "@/modules/items/queries";
+import * as receiptsQueries from "@/modules/receipts/queries";
+import * as stockAggQueries from "@/modules/stock/stock-queries";
+import * as stockQueries from "@/modules/stock/queries";
+import * as suppliersQueries from "@/modules/suppliers/queries";
 import * as usersQueries from "@/modules/users/queries";
 import { requireMember } from "@/lib/guard";
 import { AuthError, DomainError } from "@/lib/errors";
@@ -23,7 +29,13 @@ type AnyFn = (...args: unknown[]) => unknown;
 // ── Registry ────────────────────────────────────────────────────────────
 // One line per query module. Later phases: add e.g. `store: storeQueries`.
 const QUERY_MODULES: Record<string, Record<string, unknown>> = {
+  crops: cropsQueries,
   farm: farmQueries,
+  items: itemsQueries,
+  receipts: receiptsQueries,
+  stock: stockQueries,
+  stockAgg: stockAggQueries,
+  suppliers: suppliersQueries,
   users: usersQueries,
 };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DomainError } from "@/lib/errors";
-import { convert, formatQty } from "@/lib/units";
+import { convert, formatQty, UNIT_LABELS } from "@/lib/units";
 
 describe("convert", () => {
   it("is identity for the same unit", () => {
@@ -71,5 +71,52 @@ describe("formatQty", () => {
   it("caps at 3 decimals and trims trailing zeros", () => {
     expect(formatQty(1.5, "kg")).toBe("1.5 kg");
     expect(formatQty(0.1001, "g")).toBe("0.1 g");
+  });
+});
+
+// ── Item-flavoured cases (store module) ────────────────────────────────
+describe("item quantities in the store", () => {
+  it("labels every base unit for display", () => {
+    expect(UNIT_LABELS).toEqual({
+      kg: "kg",
+      g: "g",
+      l: "L",
+      ml: "mL",
+      pcs: "pieces",
+    });
+  });
+
+  it("converts a pack size into a gram-based item (25 kg bag of MKP)", () => {
+    expect(convert(25, "kg", "g")).toBe(25000);
+    expect(formatQty(25000, "g")).toBe("25 kg");
+  });
+
+  it("converts a 1 L bottle into a mL-based agrochemical", () => {
+    expect(convert(1, "l", "ml")).toBe(1000);
+    expect(formatQty(750, "ml")).toBe("750 mL");
+  });
+
+  it("shows a nearly empty kg-based fertiliser sack in grams", () => {
+    expect(formatQty(0.35, "kg")).toBe("350 g");
+    expect(formatQty(12.5, "kg")).toBe("12.5 kg");
+  });
+
+  it("shows a partly used litre-based chemical in mL", () => {
+    expect(formatQty(0.125, "l")).toBe("125 mL");
+    expect(formatQty(4.75, "l")).toBe("4.75 L");
+  });
+
+  it("counts seeds, crates and spares as pieces", () => {
+    expect(formatQty(1000, "pcs")).toBe("1000 pieces");
+  });
+
+  it("keeps the smallest numeric(14,3) step exact", () => {
+    expect(convert(0.001, "kg", "g")).toBe(1);
+    expect(convert(1, "g", "kg")).toBe(0.001);
+    expect(formatQty(0.001, "kg")).toBe("1 g");
+  });
+
+  it("refuses to treat a seed count as a mass", () => {
+    expect(() => convert(500, "pcs", "g")).toThrow(DomainError);
   });
 });

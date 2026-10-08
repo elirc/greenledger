@@ -1,15 +1,23 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/db/schema";
 import {
+  crops,
   greenhouseAssignments,
   greenhouses,
+  inventoryMovements,
+  itemBatches,
+  items,
   member,
   organization,
   plans,
+  receiptLines,
+  receipts,
   sites,
   stores,
   subscriptions,
+  suppliers,
   user,
+  varieties,
   zones,
 } from "@/db/schema";
 import { newId } from "@/lib/ids";
@@ -43,6 +51,13 @@ export interface TestOrg {
   storeIds: string[];
   /** the worker is assigned to greenhouseIds[0] only */
   assignmentIds: string[];
+  cropId: string;
+  varietyId: string;
+  supplierId: string;
+  /** null when created with `inventory: false` */
+  itemId: string | null;
+  batchId: string | null;
+  receiptId: string | null;
   users: Record<Role, TestOrgUser>;
   /** Ready-made request contexts, one per role. */
   ctx: Record<Role, Ctx>;
@@ -85,7 +100,15 @@ async function ensurePlan(db: FactoryDb): Promise<string> {
  */
 export async function createTestOrg(
   db: FactoryDb,
-  opts: { name: string },
+  opts: {
+    name: string;
+    /**
+     * Create the baseline crop/supplier/item/batch/receipt + one receive
+     * movement (default true). Tests that sweep ALL movements of the org
+     * (e.g. the stock invariant) pass false.
+     */
+    inventory?: boolean;
+  },
 ): Promise<TestOrg> {
   seq += 1;
   const tag = `${Date.now().toString(36)}${seq}${newId().slice(0, 6)}`;
@@ -196,6 +219,96 @@ export async function createTestOrg(
     .returning({ id: greenhouseAssignments.id });
   const assignmentIds = assignRows.map((a) => a.id);
 
+  // Minimal inventory + crop data so list queries have rows per org
+  // (tenancy positive controls, redaction probes).
+  const withInventory = opts.inventory !== false;
+  const [crop] = await db
+    .insert(crops)
+    .values({ organisationId: orgId, name: "Tomato", shelfLifeDays: 7 })
+    .returning({ id: crops.id });
+  const [variety] = await db
+    .insert(varieties)
+    .values({
+      organisationId: orgId,
+      cropId: crop.id,
+      name: `Padma F1 ${tag}`,
+      daysToFirstHarvest: 75,
+      harvestDurationWeeks: 10,
+      expectedYieldKgPerPlant: "4.50",
+    })
+    .returning({ id: varieties.id });
+  const [supplier] = await db
+    .insert(suppliers)
+    .values({ organisationId: orgId, name: `AgroSupplier ${tag}` })
+    .returning({ id: suppliers.id });
+
+  let itemId: string | null = null;
+  let batchId: string | null = null;
+  let receiptId: string | null = null;
+  let receiptLineId: string | null = null;
+  if (withInventory) {
+    const [item] = await db
+      .insert(items)
+      .values({
+        organisationId: orgId,
+        name: `NPK 20-20-20 ${tag}`,
+        category: "fertiliser",
+        baseUnit: "kg",
+        reorderLevel: "50.000",
+        nPct: "20.00",
+        pPct: "20.00",
+        kPct: "20.00",
+      })
+      .returning({ id: items.id });
+    const [batch] = await db
+      .insert(itemBatches)
+      .values({
+        organisationId: orgId,
+        itemId: item.id,
+        supplierId: supplier.id,
+        batchNumber: `B-${tag}`,
+        expiryDate: "2030-01-01",
+        unitCostKobo: "150000.000000", // ₦1,500/kg
+      })
+      .returning({ id: itemBatches.id });
+    const [receipt] = await db
+      .insert(receipts)
+      .values({
+        organisationId: orgId,
+        supplierId: supplier.id,
+        storeId: storeIds[0],
+        receivedBy: users.storekeeper.id,
+        totalCostKobo: 15_000_000,
+      })
+      .returning({ id: receipts.id });
+    const [receiptLine] = await db
+      .insert(receiptLines)
+      .values({
+        organisationId: orgId,
+        receiptId: receipt.id,
+        itemId: item.id,
+        itemBatchId: batch.id,
+        quantity: "100.000",
+        unitCostKobo: "150000.000000",
+        lineCostKobo: 15_000_000,
+      })
+      .returning({ id: receiptLines.id });
+    await db.insert(inventoryMovements).values({
+      organisationId: orgId,
+      itemId: item.id,
+      itemBatchId: batch.id,
+      storeId: storeIds[0],
+      type: "receive",
+      quantity: "100.000",
+      receiptLineId: receiptLine.id,
+      performedBy: users.storekeeper.id,
+    });
+    itemId = item.id;
+    batchId = batch.id;
+    receiptId = receipt.id;
+    receiptLineId = receiptLine.id;
+  }
+
   const ctx = {} as Record<Role, Ctx>;
   for (const role of ROLES) {
     const u = users[role];
@@ -217,6 +330,12 @@ export async function createTestOrg(
     ...zoneRows.map((z) => z.id),
     ...storeIds,
     ...assignmentIds,
+    crop.id,
+    variety.id,
+    supplier.id,
+    ...[itemId, batchId, receiptId, receiptLineId].filter(
+      (x): x is string => x !== null,
+    ),
     ...ROLES.flatMap((r) => [users[r].id, users[r].memberId]),
   ];
 
@@ -231,6 +350,12 @@ export async function createTestOrg(
     zoneIds: zoneRows.map((z) => z.id),
     storeIds,
     assignmentIds,
+    cropId: crop.id,
+    varietyId: variety.id,
+    supplierId: supplier.id,
+    itemId,
+    batchId,
+    receiptId,
     users,
     ctx,
     allIds,

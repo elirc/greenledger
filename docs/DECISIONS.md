@@ -51,6 +51,11 @@ Builders: read ARCHITECTURE.md for conventions, DATA-MODEL.md for tables, this f
     import). Boundary rules instead: client components never import `@/db` or `*/queries.ts`;
     the worker imports only `@/db`, `@/adapters/*` and pure libs (`money/units/dates/alerts`) —
     never `@/lib/guard`, `@/lib/auth` or `src/modules/*`.
-17. **Mock SMS/email assertions**: mock drivers log one line and push to an exported in-memory
+17. **Handlers layer (Phase 6)**: offline-capable modules will expose their `(input, ctx)`
+    handlers from a plain `handlers.ts` (NOT 'use server') so the /api/sync route can dispatch
+    to them; `actions.ts` wraps the same handlers with defineAction. Until then, replayed
+    clientIds surface as pg 23505 → `DUPLICATE` via the movement PK (belt-and-braces path);
+    the `sync_ops` insert-first contract arrives with Phase 6.
+18. **Mock SMS/email assertions**: mock drivers log one line and push to an exported in-memory
     array (`sentSms`, `sentEmails`) — they do NOT write notifications rows (adapters have no org
     context). The notifications table is written by jobs/actions, not adapters.
