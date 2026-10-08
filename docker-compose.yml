@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: greenledger
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d greenledger"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    command: sh -c "pnpm db:migrate && pnpm start"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/greenledger
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-compose-dev-secret-change-me-0123456789}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      AUTH_MOCK: ${AUTH_MOCK:-1}
+      ADAPTER_SMS: ${ADAPTER_SMS:-mock}
+      ADAPTER_EMAIL: ${ADAPTER_EMAIL:-mock}
+      ADAPTER_PAYMENTS: ${ADAPTER_PAYMENTS:-mock}
+      ADAPTER_STORAGE: ${ADAPTER_STORAGE:-local}
+      STORAGE_DIR: /app/storage
+      PGBOSS_SCHEMA: pgboss
+      TERMII_API_KEY: ${TERMII_API_KEY:-}
+      TERMII_SENDER_ID: ${TERMII_SENDER_ID:-GreenLedger}
+      TERMII_CHANNEL: ${TERMII_CHANNEL:-dnd}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-no-reply@greenledger.example}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
+    ports:
+      - "3000:3000"
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: pnpm worker
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/greenledger
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-compose-dev-secret-change-me-0123456789}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      AUTH_MOCK: ${AUTH_MOCK:-1}
+      ADAPTER_SMS: ${ADAPTER_SMS:-mock}
+      ADAPTER_EMAIL: ${ADAPTER_EMAIL:-mock}
+      ADAPTER_PAYMENTS: ${ADAPTER_PAYMENTS:-mock}
+      ADAPTER_STORAGE: ${ADAPTER_STORAGE:-local}
+      STORAGE_DIR: /app/storage
+      PGBOSS_SCHEMA: pgboss
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  storage:
