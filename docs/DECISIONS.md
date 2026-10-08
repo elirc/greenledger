@@ -42,3 +42,15 @@ Builders: read ARCHITECTURE.md for conventions, DATA-MODEL.md for tables, this f
     better-auth 1.7.7, drizzle-orm 0.45, zod 4.6, pg-boss 12.x, @tanstack/react-table 9.x,
     recharts 3.x, serwist 9.5, dexie 4.4, @react-pdf/renderer 4.9, exceljs 4.4, tailwindcss 4.3.
 14. **TypeScript pinned 5.9.3** (do not upgrade to 7.x — its tsc output is unreliable on this box).
+15. **ID types (final)**: the Better Auth generator emitted `text` PKs for user/session/account/
+    verification/organization/member/invitation — we keep them. Therefore every business-table
+    FK to `organization.id` (`organisation_id`) or `user.id` is `text`. Business-table PKs and
+    business-to-business FKs are `uuid`. Values are UUIDs either way
+    (`advanced.database.generateId = crypto.randomUUID`).
+16. **`server-only` package is NOT used** (the worker is a plain tsx process and would crash on
+    import). Boundary rules instead: client components never import `@/db` or `*/queries.ts`;
+    the worker imports only `@/db`, `@/adapters/*` and pure libs (`money/units/dates/alerts`) —
+    never `@/lib/guard`, `@/lib/auth` or `src/modules/*`.
+17. **Mock SMS/email assertions**: mock drivers log one line and push to an exported in-memory
+    array (`sentSms`, `sentEmails`) — they do NOT write notifications rows (adapters have no org
+    context). The notifications table is written by jobs/actions, not adapters.

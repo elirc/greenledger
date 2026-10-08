@@ -32,6 +32,19 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# app storage (local-disk storage driver)
+/storage
+
+# serwist service worker build output
+public/sw.js
+public/sw.js.map
+public/swe-worker*
+
+# playwright
+/test-results
+/playwright-report
 
 # vercel
 .vercel
