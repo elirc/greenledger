@@ -47,7 +47,7 @@ export const moreNav: NavItem[] = [
   { href: "/reports", label: "Reports", icon: LineChart },
   { href: "/expenses", label: "Expenses", icon: CreditCard },
   { href: "/scan", label: "Scan", icon: QrCode },
-  { href: "/settings/farm", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function isNavActive(pathname: string, href: string): boolean {
