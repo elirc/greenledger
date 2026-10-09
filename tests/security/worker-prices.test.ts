@@ -25,6 +25,11 @@ import type { Ctx } from "@/lib/guard";
 import { postMovement } from "@/modules/stock/movements";
 import * as applicationsQueries from "@/modules/applications/queries";
 import * as cropsQueries from "@/modules/crops/queries";
+import * as customersQueries from "@/modules/customers/queries";
+import * as forecastQueries from "@/modules/forecast/queries";
+import * as harvestQueries from "@/modules/harvest/queries";
+import * as produceQueries from "@/modules/produce/queries";
+import * as salesQueries from "@/modules/sales/queries";
 import * as cyclesQueries from "@/modules/cycles/queries";
 import * as greenhouseStatusQueries from "@/modules/greenhouse-status/queries";
 import * as recipesQueries from "@/modules/recipes/queries";
@@ -61,6 +66,11 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   applications: applicationsQueries,
   recipes: recipesQueries,
   greenhouseStatus: greenhouseStatusQueries,
+  customers: customersQueries,
+  forecast: forecastQueries,
+  harvest: harvestQueries,
+  produce: produceQueries,
+  sales: salesQueries,
 };
 
 /** Modules that hold money for managers — the positive control must see it. */

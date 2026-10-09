@@ -11,6 +11,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as applicationsQueries from "@/modules/applications/queries";
 import * as cropsQueries from "@/modules/crops/queries";
+import * as customersQueries from "@/modules/customers/queries";
+import * as forecastQueries from "@/modules/forecast/queries";
+import * as harvestQueries from "@/modules/harvest/queries";
+import * as produceQueries from "@/modules/produce/queries";
+import * as salesQueries from "@/modules/sales/queries";
 import * as cyclesQueries from "@/modules/cycles/queries";
 import * as farmQueries from "@/modules/farm/queries";
 import * as greenhouseStatusQueries from "@/modules/greenhouse-status/queries";
@@ -43,6 +48,11 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   farm: farmQueries,
   greenhouseStatus: greenhouseStatusQueries,
   recipes: recipesQueries,
+  customers: customersQueries,
+  forecast: forecastQueries,
+  harvest: harvestQueries,
+  produce: produceQueries,
+  sales: salesQueries,
   losses: lossesQueries,
   nursery: nurseryQueries,
   scouting: scoutingQueries,
@@ -81,6 +91,12 @@ const NO_POSITIVE_CONTROL = new Set<string>([
   // listGreenhouseSafety(ctx, opts?) has fn.length 2 so the control skips it;
   // greenhouse-id leakage is positively controlled via the farm module.
   "greenhouseStatus",
+  // no harvest/produce/sales/customer rows in the factory; probes still run
+  "harvest",
+  "produce",
+  "sales",
+  "customers",
+  "forecast",
 ]);
 
 // ── Helpers ─────────────────────────────────────────────────────────────
