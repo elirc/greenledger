@@ -13,6 +13,7 @@ import {
   type CycleListRow,
 } from "@/modules/cycles/queries";
 import { GREENHOUSE_TYPE_LABELS } from "@/modules/farm/schema";
+import { GreenhouseKpis } from "@/modules/dashboard/components/greenhouse-kpis";
 
 export const metadata = { title: "Greenhouse" };
 
@@ -115,14 +116,8 @@ export default async function GreenhouseDetailPage({
         </div>
       </div>
 
-      {ctx.canSeeMoney ? (
-        <SectionCard title="Money">
-          <p className="text-muted-foreground text-sm">
-            Input cost, revenue and margin for this greenhouse arrive with
-            harvest and sales (Phase 5).
-          </p>
-        </SectionCard>
-      ) : null}
+      {/* Yield KPIs for everyone; input cost / cost per kg only when ctx.canSeeMoney. */}
+      <GreenhouseKpis ctx={ctx} greenhouseId={gh.id} />
 
       <SectionCard
         title="Cycle history"

@@ -1,5 +1,6 @@
 import type { Job } from "pg-boss";
 import { JOBS, type JobName } from "../../lib/jobs";
+import { maintenanceScanHandler } from "./maintenance-scan";
 
 /**
  * Job handlers. pg-boss v12 hands each handler a BATCH of jobs.
@@ -17,7 +18,7 @@ export const handlers: Record<JobName, JobHandler> = {
   [JOBS.expiryScan]: placeholder(JOBS.expiryScan),
   [JOBS.reorderScan]: placeholder(JOBS.reorderScan),
   [JOBS.bestBeforeScan]: placeholder(JOBS.bestBeforeScan),
-  [JOBS.maintenanceScan]: placeholder(JOBS.maintenanceScan),
+  [JOBS.maintenanceScan]: maintenanceScanHandler,
   [JOBS.billingCheck]: placeholder(JOBS.billingCheck),
   [JOBS.notifyDispatch]: placeholder(JOBS.notifyDispatch),
 };

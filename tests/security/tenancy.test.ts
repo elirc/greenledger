@@ -12,7 +12,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as applicationsQueries from "@/modules/applications/queries";
 import * as cropsQueries from "@/modules/crops/queries";
 import * as customersQueries from "@/modules/customers/queries";
+import * as dashboardQueries from "@/modules/dashboard/queries";
+import * as equipmentQueries from "@/modules/equipment/queries";
+import * as expensesQueries from "@/modules/expenses/queries";
 import * as forecastQueries from "@/modules/forecast/queries";
+import * as readingsQueries from "@/modules/readings/queries";
+import * as reportsQueries from "@/modules/reports/queries";
 import * as harvestQueries from "@/modules/harvest/queries";
 import * as produceQueries from "@/modules/produce/queries";
 import * as salesQueries from "@/modules/sales/queries";
@@ -49,9 +54,14 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   greenhouseStatus: greenhouseStatusQueries,
   recipes: recipesQueries,
   customers: customersQueries,
+  dashboard: dashboardQueries,
+  equipment: equipmentQueries,
+  expenses: expensesQueries,
   forecast: forecastQueries,
   harvest: harvestQueries,
   produce: produceQueries,
+  readings: readingsQueries,
+  reports: reportsQueries,
   sales: salesQueries,
   losses: lossesQueries,
   nursery: nurseryQueries,
@@ -97,13 +107,33 @@ const NO_POSITIVE_CONTROL = new Set<string>([
   "sales",
   "customers",
   "forecast",
+  // no equipment/expenses/readings rows in the factory; reports mostly
+  // aggregate those same empty sets (dashboard stays controlled — it
+  // returns greenhouse ids the factory does create)
+  "equipment",
+  "expenses",
+  "readings",
+  "reports",
 ]);
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function queryFns(mod: Record<string, unknown>): [string, AnyFn][] {
+/** Pure helpers exported next to queries — not ctx-first DB functions. */
+const NOT_QUERIES = new Set<string>([
+  "reports.parseReportParams",
+  "reports.parseReportSearchParams",
+  "reports.resolveRange",
+  "reports.excelFilename",
+]);
+
+function queryFns(
+  mod: Record<string, unknown>,
+  modName?: string,
+): [string, AnyFn][] {
   return Object.entries(mod).filter(
-    (e): e is [string, AnyFn] => typeof e[1] === "function",
+    (e): e is [string, AnyFn] =>
+      typeof e[1] === "function" &&
+      !(modName && NOT_QUERIES.has(`${modName}.${e[0]}`)),
   );
 }
 
@@ -195,7 +225,7 @@ describe("tenancy registry", () => {
   it.each(Object.entries(QUERY_MODULES))(
     "%s/queries exports at least one ctx-first query function",
     (_name, mod) => {
-      const fns = queryFns(mod);
+      const fns = queryFns(mod, _name);
       expect(fns.length).toBeGreaterThan(0);
       for (const [fnName, fn] of fns) {
         // Every exported query takes ctx as its first parameter.
@@ -207,7 +237,7 @@ describe("tenancy registry", () => {
 
 for (const [modName, mod] of Object.entries(QUERY_MODULES)) {
   describe(`${modName}/queries — org A ctx never sees org B rows`, () => {
-    for (const [fnName, fn] of queryFns(mod)) {
+    for (const [fnName, fn] of queryFns(mod, modName)) {
       const key = `${modName}.${fnName}`;
 
       it(`${key} (every role)`, async () => {
@@ -238,7 +268,7 @@ for (const [modName, mod] of Object.entries(QUERY_MODULES)) {
       `${modName}: positive control — org B ctx sees its own rows`,
       async () => {
         let found = 0;
-        for (const [, fn] of queryFns(mod)) {
+        for (const [, fn] of queryFns(mod, modName)) {
           if (fn.length > 1) continue;
           try {
             const result = await fn(B.ctx.owner);
@@ -262,7 +292,7 @@ describe("forged contexts cannot widen scope", () => {
   const ghostUserId = "00000000-0000-4000-8000-00000000beef";
 
   for (const [modName, mod] of Object.entries(QUERY_MODULES)) {
-    for (const [fnName, fn] of queryFns(mod)) {
+    for (const [fnName, fn] of queryFns(mod, modName)) {
       const key = `${modName}.${fnName}`;
       it(`${key} with a ghost-org ctx returns nothing from real orgs`, async () => {
         const realIds = new Set([...aIds, ...bIds]);

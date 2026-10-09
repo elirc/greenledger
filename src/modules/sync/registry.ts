@@ -13,6 +13,8 @@ import { applicationCreateSchema } from "@/modules/applications/schema";
 import { logApplicationHandler } from "@/modules/applications/handlers";
 import { harvestCreateSchema } from "@/modules/harvest/schema";
 import { postHarvestHandler } from "@/modules/harvest/handlers";
+import { readingCreateSchema } from "@/modules/readings/schema";
+import { createReadingHandler } from "@/modules/readings/handlers";
 
 export interface SyncOpEntry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogenous registry
@@ -32,6 +34,10 @@ export const SYNC_OPS: Record<string, SyncOpEntry> = {
   "harvest.create": {
     schema: harvestCreateSchema,
     run: postHarvestHandler as SyncOpEntry["run"],
+  },
+  "reading.create": {
+    schema: readingCreateSchema,
+    run: createReadingHandler as SyncOpEntry["run"],
   },
   // P6 adds: "stock.issue", "scouting.create", "task.complete", "reading.create"
 };

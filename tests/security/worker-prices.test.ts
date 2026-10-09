@@ -26,7 +26,12 @@ import { postMovement } from "@/modules/stock/movements";
 import * as applicationsQueries from "@/modules/applications/queries";
 import * as cropsQueries from "@/modules/crops/queries";
 import * as customersQueries from "@/modules/customers/queries";
+import * as dashboardQueries from "@/modules/dashboard/queries";
+import * as equipmentQueries from "@/modules/equipment/queries";
+import * as expensesQueries from "@/modules/expenses/queries";
 import * as forecastQueries from "@/modules/forecast/queries";
+import * as readingsQueries from "@/modules/readings/queries";
+import * as reportsQueries from "@/modules/reports/queries";
 import * as harvestQueries from "@/modules/harvest/queries";
 import * as produceQueries from "@/modules/produce/queries";
 import * as salesQueries from "@/modules/sales/queries";
@@ -67,9 +72,14 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   recipes: recipesQueries,
   greenhouseStatus: greenhouseStatusQueries,
   customers: customersQueries,
+  dashboard: dashboardQueries,
+  equipment: equipmentQueries,
+  expenses: expensesQueries,
   forecast: forecastQueries,
   harvest: harvestQueries,
   produce: produceQueries,
+  readings: readingsQueries,
+  reports: reportsQueries,
   sales: salesQueries,
 };
 
