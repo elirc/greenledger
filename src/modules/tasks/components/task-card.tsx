@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import type { ActionResult } from "@/lib/action";
 import { formatLagos, formatLagosDate } from "@/lib/dates";
 import { newId } from "@/lib/ids";
+import { submitWithOfflineFallback } from "@/lib/offline/outbox";
 import { cancelTask, completeTask, reopenTask } from "../actions";
 import { canCompleteTask, isOpenStatus, isOverdue } from "../logic";
 import type { TaskRow } from "../queries";
@@ -35,9 +36,38 @@ export function TaskCard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  /** Completion queued in the offline outbox (not yet on the server). */
+  const [queued, setQueued] = useState(false);
   const open = isOpenStatus(task.status);
   const overdue = isOverdue(task, today);
-  const canComplete = open && canCompleteTask(viewer, task);
+  const canComplete = open && !queued && canCompleteTask(viewer, task);
+
+  function completeOffline() {
+    startTransition(async () => {
+      try {
+        const input = { clientId: newId(), taskId: task.id };
+        const outcome = await submitWithOfflineFallback(
+          completeTask,
+          "task.complete",
+          input.clientId,
+          input,
+        );
+        if (outcome.kind === "queued") {
+          setQueued(true);
+          toast.success("Saved on this phone — will sync");
+          return;
+        }
+        if (outcome.result.ok) {
+          toast.success("Task done");
+          router.refresh();
+        } else {
+          toast.error(outcome.result.error);
+        }
+      } catch {
+        toast.error("Could not reach the server. Try again.");
+      }
+    });
+  }
 
   function run(
     label: string,
@@ -111,14 +141,13 @@ export function TaskCard({
           <Button
             className="h-11 flex-1"
             disabled={pending}
-            onClick={() =>
-              run("Task done", () =>
-                completeTask({ clientId: newId(), taskId: task.id }),
-              )
-            }
+            onClick={completeOffline}
           >
             <Check className="size-4" /> Mark done
           </Button>
+        ) : null}
+        {queued ? (
+          <StatusBadge variant="info">Done — waiting to sync</StatusBadge>
         ) : null}
         {viewer.canManage && open ? (
           <>

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -9,7 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { primaryNav, moreNav, isNavActive } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
-export function DesktopSidebar() {
+export function DesktopSidebar({
+  headerSlot,
+}: {
+  /** Server-rendered extras (notification bell) passed from AppShell. */
+  headerSlot?: ReactNode;
+}) {
   const pathname = usePathname();
   const items = [...primaryNav, ...moreNav];
 
@@ -48,6 +54,7 @@ export function DesktopSidebar() {
       <Separator className="bg-sidebar-border" />
       <div className="flex items-center gap-2 p-3">
         {/* session header slot */}
+        {headerSlot}
         <UserMenu />
       </div>
     </aside>

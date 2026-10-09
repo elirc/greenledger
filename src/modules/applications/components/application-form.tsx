@@ -29,6 +29,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatLagos, formatLagosDate } from "@/lib/dates";
 import { newId } from "@/lib/ids";
+import { submitWithOfflineFallback } from "@/lib/offline/outbox";
+import { useCachedRefs } from "@/lib/offline/ref-cache";
 import { formatQty, UNIT_LABELS } from "@/lib/units";
 import { applyActionError } from "@/modules/farm/components/form-helpers";
 import { NumberInput } from "@/modules/farm/components/number-input";
@@ -64,7 +66,7 @@ const STOCK_CODES = ["NO_STOCK", "INSUFFICIENT_STOCK", "EXPIRED_BATCH"];
  * No money anywhere on this form.
  */
 export function ApplicationForm({
-  refs,
+  refs: serverRefs,
   nowLocal,
 }: {
   refs: ApplicationFormRefs;
@@ -72,6 +74,7 @@ export function ApplicationForm({
   nowLocal: string;
 }) {
   const router = useRouter();
+  const refs = useCachedRefs("application-form-refs", serverRefs);
   const [stockError, setStockError] = useState<string | null>(null);
 
   const initialGh = refs.greenhouses.length === 1 ? refs.greenhouses[0].id : "";
@@ -163,10 +166,26 @@ export function ApplicationForm({
 
   async function onSubmit(values: ApplicationCreateInput) {
     setStockError(null);
-    const result = await logApplication({
-      ...values,
-      recipeId: values.recipeId || undefined,
-    });
+    const payload = { ...values, recipeId: values.recipeId || undefined };
+    const outcome = await submitWithOfflineFallback(
+      logApplication,
+      "application.create",
+      payload.clientId,
+      payload,
+    );
+    if (outcome.kind === "queued") {
+      toast.success("Saved on this phone — will sync");
+      form.reset({
+        ...values,
+        clientId: newId(),
+        recipeId: undefined,
+        waterVolumeLitres: undefined,
+        lines: [blankLine()],
+        notes: "",
+      });
+      return;
+    }
+    const result = outcome.result;
     if (result.ok) {
       const { entrySafeAt, harvestSafeDate } = result.data;
       const parts = [

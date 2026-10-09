@@ -10,7 +10,9 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as applicationsQueries from "@/modules/applications/queries";
+import * as billingQueries from "@/modules/billing/queries";
 import * as cropsQueries from "@/modules/crops/queries";
+import * as notificationsQueries from "@/modules/notifications/queries";
 import * as customersQueries from "@/modules/customers/queries";
 import * as dashboardQueries from "@/modules/dashboard/queries";
 import * as equipmentQueries from "@/modules/equipment/queries";
@@ -48,7 +50,9 @@ type AnyFn = (...args: unknown[]) => unknown;
 // One line per query module. Later phases: add e.g. `store: storeQueries`.
 const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   applications: applicationsQueries,
+  billing: billingQueries,
   crops: cropsQueries,
+  notifications: notificationsQueries,
   cycles: cyclesQueries,
   farm: farmQueries,
   greenhouseStatus: greenhouseStatusQueries,
@@ -114,6 +118,10 @@ const NO_POSITIVE_CONTROL = new Set<string>([
   "expenses",
   "readings",
   "reports",
+  // the factory creates no notifications; billing throws FORBIDDEN for the
+  // non-owner roles the control iterates, so neither can prove a positive
+  "notifications",
+  "billing",
 ]);
 
 // ── Helpers ─────────────────────────────────────────────────────────────

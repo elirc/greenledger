@@ -8,6 +8,7 @@ import { cropsStep } from "./05-crops";
 import { applicationsStep } from "./06-applications";
 import { harvestsSalesStep } from "./07-harvests-sales";
 import { equipmentExpensesStep } from "./08-equipment-expenses";
+import { notificationsStep } from "./09-notifications";
 import type { SeedState, SeedStep } from "./state";
 
 /**
@@ -24,6 +25,7 @@ export const SEED_STEPS: SeedStep[] = [
   applicationsStep,
   harvestsSalesStep,
   equipmentExpensesStep,
+  notificationsStep,
 ];
 
 function initialState(): SeedState {

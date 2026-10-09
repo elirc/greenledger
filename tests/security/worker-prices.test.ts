@@ -24,7 +24,9 @@ import { addDays, todayLagos } from "@/lib/dates";
 import type { Ctx } from "@/lib/guard";
 import { postMovement } from "@/modules/stock/movements";
 import * as applicationsQueries from "@/modules/applications/queries";
+import * as billingQueries from "@/modules/billing/queries";
 import * as cropsQueries from "@/modules/crops/queries";
+import * as notificationsQueries from "@/modules/notifications/queries";
 import * as customersQueries from "@/modules/customers/queries";
 import * as dashboardQueries from "@/modules/dashboard/queries";
 import * as equipmentQueries from "@/modules/equipment/queries";
@@ -81,6 +83,8 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   readings: readingsQueries,
   reports: reportsQueries,
   sales: salesQueries,
+  billing: billingQueries,
+  notifications: notificationsQueries,
 };
 
 /** Modules that hold money for managers — the positive control must see it. */

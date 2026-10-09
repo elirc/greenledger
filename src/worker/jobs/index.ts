@@ -1,6 +1,11 @@
 import type { Job } from "pg-boss";
 import { JOBS, type JobName } from "../../lib/jobs";
 import { maintenanceScanHandler } from "./maintenance-scan";
+import { expiryScanHandler } from "./expiry-scan";
+import { reorderScanHandler } from "./reorder-scan";
+import { bestBeforeScanHandler } from "./best-before-scan";
+import { billingCheckHandler } from "./billing-check";
+import { notifyDispatchHandler } from "./notify-dispatch";
 
 /**
  * Job handlers. pg-boss v12 hands each handler a BATCH of jobs.
@@ -8,19 +13,13 @@ import { maintenanceScanHandler } from "./maintenance-scan";
  */
 export type JobHandler = (jobs: Job<Record<string, unknown>>[]) => Promise<void>;
 
-function placeholder(name: JobName): JobHandler {
-  return async (jobs) => {
-    console.log(`[worker] ${name}: ${jobs.length} job(s) (placeholder handler)`);
-  };
-}
-
 export const handlers: Record<JobName, JobHandler> = {
-  [JOBS.expiryScan]: placeholder(JOBS.expiryScan),
-  [JOBS.reorderScan]: placeholder(JOBS.reorderScan),
-  [JOBS.bestBeforeScan]: placeholder(JOBS.bestBeforeScan),
+  [JOBS.expiryScan]: expiryScanHandler,
+  [JOBS.reorderScan]: reorderScanHandler,
+  [JOBS.bestBeforeScan]: bestBeforeScanHandler,
   [JOBS.maintenanceScan]: maintenanceScanHandler,
-  [JOBS.billingCheck]: placeholder(JOBS.billingCheck),
-  [JOBS.notifyDispatch]: placeholder(JOBS.notifyDispatch),
+  [JOBS.billingCheck]: billingCheckHandler,
+  [JOBS.notifyDispatch]: notifyDispatchHandler,
 };
 
 /** Daily cron schedules in Africa/Lagos (ARCHITECTURE §8). notify.dispatch is queue-only. */

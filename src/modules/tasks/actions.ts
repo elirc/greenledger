@@ -8,7 +8,7 @@ import { defineAction } from "@/lib/action";
 import { writeAudit } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 import type { Ctx } from "@/lib/guard";
-import { canCompleteTask } from "./logic";
+import { completeTaskHandler } from "./handlers";
 import {
   taskCompleteSchema,
   taskCreateSchema,
@@ -159,43 +159,16 @@ export const updateTask = defineAction({
 /**
  * Any role, on tasks they may act on. Idempotent: completing a task that is
  * already done is a no-op success (safe to replay from the offline outbox).
+ * Delegates to completeTaskHandler — the same code /api/sync runs.
  */
 export const completeTask = defineAction({
   name: "tasks.complete",
   schema: taskCompleteSchema,
-  handler: (input, ctx) =>
-    db.transaction(async (tx) => {
-      const task = await lockTask(tx, ctx, input.taskId);
-      if (!canCompleteTask(ctx, task)) {
-        // Not visible to this user — same answer as a missing task.
-        throw new DomainError("NOT_FOUND", "Task not found.");
-      }
-      if (task.status === "done") return { id: task.id, duplicate: true };
-      if (task.status === "cancelled") {
-        throw new DomainError(
-          "TASK_CANCELLED",
-          "This task was cancelled. Ask a manager to reopen it.",
-        );
-      }
-      const completedAt = new Date();
-      await tx
-        .update(tasks)
-        .set({ status: "done", completedAt, completedBy: ctx.userId })
-        .where(and(eq(tasks.id, task.id), eq(tasks.organisationId, ctx.orgId)));
-      await writeAudit(tx, ctx, {
-        action: "tasks.complete",
-        entityType: "task",
-        entityId: task.id,
-        before: { status: task.status },
-        after: {
-          status: "done",
-          completedAt: completedAt.toISOString(),
-          clientId: input.clientId,
-        },
-      });
-      revalidateTasks();
-      return { id: task.id, duplicate: false };
-    }),
+  handler: async (input, ctx) => {
+    const result = await completeTaskHandler(input, ctx);
+    if (!result.duplicate) revalidateTasks();
+    return result;
+  },
 });
 
 export const reopenTask = defineAction({

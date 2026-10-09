@@ -44,7 +44,7 @@ const ENTRIES: Entry[] = [
     ownerOnly: false,
   },
   {
-    href: null, // placeholder until billing ships
+    href: "/settings/billing",
     title: "Billing",
     description: "Plan, trial and payments.",
     icon: CreditCard,

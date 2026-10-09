@@ -30,6 +30,8 @@ import { ScanSheet } from "@/components/scan/scan-sheet";
 import { decodeScanText } from "@/components/scan/decode";
 import { formatLagosDate } from "@/lib/dates";
 import { newId } from "@/lib/ids";
+import { submitWithOfflineFallback } from "@/lib/offline/outbox";
+import { useCachedRefs } from "@/lib/offline/ref-cache";
 import { formatQty, UNIT_LABELS } from "@/lib/units";
 import { NumberInput } from "@/modules/farm/components/number-input";
 import { applyActionError } from "@/modules/farm/components/form-helpers";
@@ -53,7 +55,7 @@ function expiryLabel(expiryDate: string | null): string {
 }
 
 export function IssueForm({
-  refs,
+  refs: serverRefs,
   canOverride,
   initialBatchId,
   initialItemId,
@@ -65,6 +67,7 @@ export function IssueForm({
   initialItemId?: string;
 }) {
   const router = useRouter();
+  const refs = useCachedRefs("issue-form-refs", serverRefs);
   const defaultStoreId =
     refs.stores.find((s) => s.isDefault)?.id ?? refs.stores[0]?.id ?? "";
 
@@ -188,14 +191,7 @@ export function IssueForm({
       form.setError("batchId", { message: "Pick a batch" });
       return;
     }
-    const result = await issueStock(payload);
-    if (result.ok) {
-      const unit = item?.baseUnit;
-      const parts = result.data.allocations.map((a) => {
-        const b = refs.batches.find((x) => x.id === a.batchId);
-        return `${unit ? formatQty(a.quantity, unit) : a.quantity} from ${b?.batchNumber ?? "batch"}`;
-      });
-      toast.success(`Issued ${parts.join(", ")}`);
+    const resetAfterSave = () => {
       form.reset({
         clientId: newId(),
         storeId: values.storeId,
@@ -209,6 +205,27 @@ export function IssueForm({
       setManualBatch(false);
       setOverrideOn(false);
       setExpiredBlocked(false);
+    };
+    const outcome = await submitWithOfflineFallback(
+      issueStock,
+      "stock.issue",
+      payload.clientId,
+      payload,
+    );
+    if (outcome.kind === "queued") {
+      toast.success("Saved on this phone — will sync");
+      resetAfterSave();
+      return;
+    }
+    const result = outcome.result;
+    if (result.ok) {
+      const unit = item?.baseUnit;
+      const parts = result.data.allocations.map((a) => {
+        const b = refs.batches.find((x) => x.id === a.batchId);
+        return `${unit ? formatQty(a.quantity, unit) : a.quantity} from ${b?.batchNumber ?? "batch"}`;
+      });
+      toast.success(`Issued ${parts.join(", ")}`);
+      resetAfterSave();
       router.refresh();
       return;
     }

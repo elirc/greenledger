@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { newId } from "@/lib/ids";
+import { submitWithOfflineFallback } from "@/lib/offline/outbox";
+import { useCachedRefs } from "@/lib/offline/ref-cache";
 import { applyActionError } from "@/modules/farm/components/form-helpers";
 import { NumberInput } from "@/modules/farm/components/number-input";
 import { createReading } from "../actions";
@@ -46,7 +48,7 @@ const PLACEHOLDERS: Record<Metric, string> = {
  * (zod refine). Time defaults to now (Lagos, from the server).
  */
 export function ReadingForm({
-  greenhouses,
+  greenhouses: serverGreenhouses,
   initialGreenhouseId,
   nowLocal,
 }: {
@@ -56,6 +58,7 @@ export function ReadingForm({
   nowLocal: string;
 }) {
   const router = useRouter();
+  const greenhouses = useCachedRefs("reading-form-refs", serverGreenhouses);
   const form = useForm<ReadingCreateInput>({
     resolver: zodResolver(readingCreateSchema),
     defaultValues: {
@@ -70,7 +73,25 @@ export function ReadingForm({
   });
 
   async function onSubmit(values: ReadingCreateInput) {
-    const result = await createReading(values);
+    const outcome = await submitWithOfflineFallback(
+      createReading,
+      "reading.create",
+      values.clientId,
+      values,
+    );
+    if (outcome.kind === "queued") {
+      toast.success("Saved on this phone — will sync");
+      form.reset({
+        ...values,
+        clientId: newId(),
+        temperatureC: undefined,
+        humidityPct: undefined,
+        ecMsCm: undefined,
+        ph: undefined,
+      });
+      return;
+    }
+    const result = outcome.result;
     if (result.ok) {
       toast.success("Reading saved");
       router.push(`/readings?gh=${values.greenhouseId}`);

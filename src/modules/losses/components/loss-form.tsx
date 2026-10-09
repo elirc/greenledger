@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { newId } from "@/lib/ids";
+import { submitWithOfflineFallback } from "@/lib/offline/outbox";
+import { useCachedRefs } from "@/lib/offline/ref-cache";
 import { applyActionError } from "@/modules/farm/components/form-helpers";
 import { NumberInput } from "@/modules/farm/components/number-input";
 import { logPlantLoss } from "../actions";
@@ -38,7 +40,7 @@ const numberFmt = new Intl.NumberFormat("en-NG");
 
 export function LossForm({
   cropCycleId,
-  plantsAlive,
+  plantsAlive: serverPlantsAlive,
   today,
   minDate,
 }: {
@@ -50,6 +52,10 @@ export function LossForm({
   minDate?: string | null;
 }) {
   const router = useRouter();
+  const plantsAlive = useCachedRefs(
+    `loss-form-refs:${cropCycleId}`,
+    serverPlantsAlive,
+  );
   const form = useForm<PlantLossCreateInput>({
     resolver: zodResolver(plantLossCreateSchema),
     defaultValues: {
@@ -69,7 +75,18 @@ export function LossForm({
       });
       return;
     }
-    const result = await logPlantLoss(values);
+    const outcome = await submitWithOfflineFallback(
+      logPlantLoss,
+      "plantLoss.create",
+      values.clientId,
+      values,
+    );
+    if (outcome.kind === "queued") {
+      toast.success("Saved on this phone — will sync");
+      form.reset({ ...values, clientId: newId(), count: undefined, notes: "" });
+      return;
+    }
+    const result = outcome.result;
     if (result.ok) {
       toast.success("Loss logged");
       router.push(`/cycles/${cropCycleId}`);

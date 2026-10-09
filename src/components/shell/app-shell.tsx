@@ -5,11 +5,12 @@ import { BottomNav } from "./bottom-nav";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { UserMenu } from "./user-menu";
 import { OfflineBadge } from "@/components/common/offline-badge";
+import { NotificationBell } from "@/modules/notifications/components/notification-bell";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-background lg:pl-60">
-      <DesktopSidebar />
+      <DesktopSidebar headerSlot={<NotificationBell />} />
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur lg:hidden">
@@ -23,6 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-1">
             <OfflineBadge />
             {/* session header slot */}
+            <NotificationBell />
             <UserMenu compactIcon />
           </div>
         </div>

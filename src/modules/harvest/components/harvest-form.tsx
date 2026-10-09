@@ -28,6 +28,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatLagosDate, lagosDateOf } from "@/lib/dates";
 import { newId } from "@/lib/ids";
+import { submitWithOfflineFallback } from "@/lib/offline/outbox";
+import { useCachedRefs } from "@/lib/offline/ref-cache";
 import { lagosLocalToDate } from "@/modules/applications/schema";
 import { SafetyChips } from "@/modules/cycles/components/safety-chips";
 import { applyActionError } from "@/modules/farm/components/form-helpers";
@@ -62,7 +64,7 @@ const blankLines = (): HarvestLineFormInput[] =>
  * ask a manager. No money anywhere.
  */
 export function HarvestForm({
-  refs,
+  refs: serverRefs,
   nowLocal,
   initialGreenhouseId,
   canOverride,
@@ -78,6 +80,7 @@ export function HarvestForm({
   canOverride: boolean;
 }) {
   const router = useRouter();
+  const refs = useCachedRefs("harvest-form-refs", serverRefs);
   const [phiError, setPhiError] = useState<string | null>(null);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [pending, setPending] = useState<HarvestCreateInput | null>(null);
@@ -141,7 +144,18 @@ export function HarvestForm({
 
   async function submit(values: HarvestCreateInput): Promise<boolean> {
     setPhiError(null);
-    const result = await logHarvest(values);
+    const outcome = await submitWithOfflineFallback(
+      logHarvest,
+      "harvest.create",
+      values.clientId,
+      values,
+    );
+    if (outcome.kind === "queued") {
+      toast.success("Saved on this phone — will sync");
+      resetAfterSave(values);
+      return true;
+    }
+    const result = outcome.result;
     if (result.ok) {
       if (result.data.duplicate) {
         toast.info("This harvest was already saved.");
