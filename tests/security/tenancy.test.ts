@@ -9,9 +9,12 @@
  * Orchestrator-only (shared test DB): `pnpm test:integration`.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import * as applicationsQueries from "@/modules/applications/queries";
 import * as cropsQueries from "@/modules/crops/queries";
 import * as cyclesQueries from "@/modules/cycles/queries";
 import * as farmQueries from "@/modules/farm/queries";
+import * as greenhouseStatusQueries from "@/modules/greenhouse-status/queries";
+import * as recipesQueries from "@/modules/recipes/queries";
 import * as lossesQueries from "@/modules/losses/queries";
 import * as nurseryQueries from "@/modules/nursery/queries";
 import * as scoutingQueries from "@/modules/scouting/queries";
@@ -34,9 +37,12 @@ type AnyFn = (...args: unknown[]) => unknown;
 // ── Registry ────────────────────────────────────────────────────────────
 // One line per query module. Later phases: add e.g. `store: storeQueries`.
 const QUERY_MODULES: Record<string, Record<string, unknown>> = {
+  applications: applicationsQueries,
   crops: cropsQueries,
   cycles: cyclesQueries,
   farm: farmQueries,
+  greenhouseStatus: greenhouseStatusQueries,
+  recipes: recipesQueries,
   losses: lossesQueries,
   nursery: nurseryQueries,
   scouting: scoutingQueries,
@@ -55,12 +61,27 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
  * any org-B id. Use B's ids in the args to probe cross-tenant lookups.
  */
 const ARG_OVERRIDES: Record<string, (a: TestOrg, b: TestOrg) => unknown[][]> =
-  {};
+  {
+    // 2nd arg is an enum filter, not an id — probing it with ~100 uuid calls
+    // just burns 30s on invalid-enum rejections.
+    "applications.listRecipeOptions": () => [["fertigation"], ["spray"], []],
+    "recipes.listRecipeItemOptions": () => [[]],
+  };
 
 /** Modules whose functions never return ids (skip the positive control). */
 // nursery/losses/scouting lists are keyed by cycle children the factory
 // doesn't create; their cross-tenant probes still run above.
-const NO_POSITIVE_CONTROL = new Set<string>(["nursery", "losses", "scouting"]);
+const NO_POSITIVE_CONTROL = new Set<string>([
+  "nursery",
+  "losses",
+  "scouting",
+  // no recipes/applications rows in the factory; cross-tenant probes still run
+  "recipes",
+  "applications",
+  // listGreenhouseSafety(ctx, opts?) has fn.length 2 so the control skips it;
+  // greenhouse-id leakage is positively controlled via the farm module.
+  "greenhouseStatus",
+]);
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
