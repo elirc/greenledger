@@ -4,7 +4,7 @@
  * nursery UI (P3-A) and the cycles module (P3-B); orchestrator-owned.
  */
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { cropCycles, greenhouses, nurseryBatches, varieties } from "@/db/schema";
 import { addDays, lagosDateOf } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
@@ -87,18 +87,25 @@ export async function transplantToCycle(
     variety.harvestDurationWeeks * 7,
   );
 
-  // Cycle code "GH1-2026-02": greenhouse name + year + per-greenhouse sequence.
+  // Cycle code "GH1-2026-02": greenhouse name + year + per-greenhouse
+  // sequence. Max existing suffix + 1 (a bare count collides after deletes).
   const year = input.transplantDate.slice(0, 4);
-  const [seq] = await tx
-    .select({ n: sql<string>`count(*)` })
+  const prefix = `${gh.name}-${year}-`;
+  const existing = await tx
+    .select({ code: cropCycles.code })
     .from(cropCycles)
     .where(
       and(
         eq(cropCycles.organisationId, ctx.orgId),
         eq(cropCycles.greenhouseId, input.greenhouseId),
+        like(cropCycles.code, `${prefix}%`),
       ),
     );
-  const code = `${gh.name}-${year}-${String(Number(seq?.n ?? 0) + 1).padStart(2, "0")}`;
+  const maxSeq = existing.reduce((m, r) => {
+    const n = Number(r.code.slice(prefix.length));
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  const code = `${prefix}${String(maxSeq + 1).padStart(2, "0")}`;
 
   const [cycle] = await tx
     .insert(cropCycles)

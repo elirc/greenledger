@@ -4,6 +4,7 @@ import { platformStep } from "./01-platform";
 import { orgStep } from "./02-org";
 import { structureStep } from "./03-structure";
 import { itemsStep } from "./04-items";
+import { cropsStep } from "./05-crops";
 import type { SeedState, SeedStep } from "./state";
 
 /**
@@ -16,6 +17,7 @@ export const SEED_STEPS: SeedStep[] = [
   orgStep,
   structureStep,
   itemsStep,
+  cropsStep,
 ];
 
 function initialState(): SeedState {

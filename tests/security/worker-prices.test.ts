@@ -24,11 +24,16 @@ import { addDays, todayLagos } from "@/lib/dates";
 import type { Ctx } from "@/lib/guard";
 import { postMovement } from "@/modules/stock/movements";
 import * as cropsQueries from "@/modules/crops/queries";
+import * as cyclesQueries from "@/modules/cycles/queries";
 import * as farmQueries from "@/modules/farm/queries";
 import * as itemsQueries from "@/modules/items/queries";
+import * as lossesQueries from "@/modules/losses/queries";
+import * as nurseryQueries from "@/modules/nursery/queries";
 import * as receiptsQueries from "@/modules/receipts/queries";
+import * as scoutingQueries from "@/modules/scouting/queries";
 import * as stockAggregateQueries from "@/modules/stock/stock-queries";
 import * as suppliersQueries from "@/modules/suppliers/queries";
+import * as tasksQueries from "@/modules/tasks/queries";
 import * as usersQueries from "@/modules/users/queries";
 import { closeTestDb, getTestDb, truncateAll } from "../helpers/db";
 import { createTestOrg, type TestOrg } from "../factories";
@@ -45,6 +50,11 @@ const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   users: usersQueries,
   farm: farmQueries,
   crops: cropsQueries,
+  nursery: nurseryQueries,
+  cycles: cyclesQueries,
+  losses: lossesQueries,
+  scouting: scoutingQueries,
+  tasks: tasksQueries,
 };
 
 /** Modules that hold money for managers — the positive control must see it. */

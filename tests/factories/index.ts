@@ -1,6 +1,7 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/db/schema";
 import {
+  cropCycles,
   crops,
   greenhouseAssignments,
   greenhouses,
@@ -16,6 +17,7 @@ import {
   stores,
   subscriptions,
   suppliers,
+  tasks,
   user,
   varieties,
   zones,
@@ -58,6 +60,9 @@ export interface TestOrg {
   itemId: string | null;
   batchId: string | null;
   receiptId: string | null;
+  /** one planned cycle + one open task, always created */
+  cycleId: string;
+  taskId: string;
   users: Record<Role, TestOrgUser>;
   /** Ready-made request contexts, one per role. */
   ctx: Record<Role, Ctx>;
@@ -309,6 +314,30 @@ export async function createTestOrg(
     receiptLineId = receiptLine.id;
   }
 
+  // One planned cycle + one open task so cycle/task list queries have rows.
+  const [cycle] = await db
+    .insert(cropCycles)
+    .values({
+      organisationId: orgId,
+      greenhouseId: greenhouseIds[0],
+      varietyId: variety.id,
+      code: `GH1-PLAN-${tag}`,
+      status: "planned",
+    })
+    .returning({ id: cropCycles.id });
+  const [task] = await db
+    .insert(tasks)
+    .values({
+      organisationId: orgId,
+      title: `Check drip lines ${tag}`,
+      greenhouseId: greenhouseIds[0],
+      assignedTo: users.worker.id,
+      dueDate: "2030-01-01",
+      status: "open",
+      createdBy: users.manager.id,
+    })
+    .returning({ id: tasks.id });
+
   const ctx = {} as Record<Role, Ctx>;
   for (const role of ROLES) {
     const u = users[role];
@@ -336,6 +365,8 @@ export async function createTestOrg(
     ...[itemId, batchId, receiptId, receiptLineId].filter(
       (x): x is string => x !== null,
     ),
+    cycle.id,
+    task.id,
     ...ROLES.flatMap((r) => [users[r].id, users[r].memberId]),
   ];
 
@@ -356,6 +387,8 @@ export async function createTestOrg(
     itemId,
     batchId,
     receiptId,
+    cycleId: cycle.id,
+    taskId: task.id,
     users,
     ctx,
     allIds,

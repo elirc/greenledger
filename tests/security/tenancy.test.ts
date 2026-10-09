@@ -10,7 +10,12 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as cropsQueries from "@/modules/crops/queries";
+import * as cyclesQueries from "@/modules/cycles/queries";
 import * as farmQueries from "@/modules/farm/queries";
+import * as lossesQueries from "@/modules/losses/queries";
+import * as nurseryQueries from "@/modules/nursery/queries";
+import * as scoutingQueries from "@/modules/scouting/queries";
+import * as tasksQueries from "@/modules/tasks/queries";
 import * as itemsQueries from "@/modules/items/queries";
 import * as receiptsQueries from "@/modules/receipts/queries";
 import * as stockAggQueries from "@/modules/stock/stock-queries";
@@ -30,7 +35,12 @@ type AnyFn = (...args: unknown[]) => unknown;
 // One line per query module. Later phases: add e.g. `store: storeQueries`.
 const QUERY_MODULES: Record<string, Record<string, unknown>> = {
   crops: cropsQueries,
+  cycles: cyclesQueries,
   farm: farmQueries,
+  losses: lossesQueries,
+  nursery: nurseryQueries,
+  scouting: scoutingQueries,
+  tasks: tasksQueries,
   items: itemsQueries,
   receipts: receiptsQueries,
   stock: stockQueries,
@@ -48,7 +58,9 @@ const ARG_OVERRIDES: Record<string, (a: TestOrg, b: TestOrg) => unknown[][]> =
   {};
 
 /** Modules whose functions never return ids (skip the positive control). */
-const NO_POSITIVE_CONTROL = new Set<string>([]);
+// nursery/losses/scouting lists are keyed by cycle children the factory
+// doesn't create; their cross-tenant probes still run above.
+const NO_POSITIVE_CONTROL = new Set<string>(["nursery", "losses", "scouting"]);
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 

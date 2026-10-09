@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ChevronRight,
   CreditCard,
+  Sprout,
   Tent,
   Users,
   type LucideIcon,
@@ -31,8 +32,15 @@ const ENTRIES: Entry[] = [
   {
     href: "/settings/farm",
     title: "Farm structure",
-    description: "Sites, greenhouses, stores and crop varieties.",
+    description: "Sites, greenhouses, zones and stores.",
     icon: Tent,
+    ownerOnly: false,
+  },
+  {
+    href: "/settings/varieties",
+    title: "Crops & varieties",
+    description: "Varieties, yields, harvest windows and shelf life.",
+    icon: Sprout,
     ownerOnly: false,
   },
   {
