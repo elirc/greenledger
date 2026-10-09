@@ -32,8 +32,11 @@ export const env = schema.parse(process.env);
 
 export const isMockAuth = env.AUTH_MOCK === "1";
 
-// The app must refuse to start in production with mock auth enabled (spec rule).
-if (process.env.NODE_ENV === "production" && isMockAuth) {
+// The app must refuse to START in production with mock auth enabled (spec
+// rule). `next build` also runs with NODE_ENV=production while collecting
+// page data — building is allowed; serving is not.
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+if (process.env.NODE_ENV === "production" && isMockAuth && !isBuildPhase) {
   throw new Error(
     "FATAL: AUTH_MOCK=1 in production. GreenLedger refuses to start with mock auth enabled.",
   );

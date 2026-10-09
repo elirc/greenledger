@@ -6,11 +6,18 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { UserMenu } from "./user-menu";
 import { OfflineBadge } from "@/components/common/offline-badge";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
+import type { Role } from "@/lib/permissions";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  role,
+}: {
+  children: ReactNode;
+  role?: Role;
+}) {
   return (
     <div className="min-h-dvh bg-background lg:pl-60">
-      <DesktopSidebar headerSlot={<NotificationBell />} />
+      <DesktopSidebar headerSlot={<NotificationBell />} role={role} />
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur lg:hidden">
@@ -34,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <BottomNav />
+      <BottomNav role={role} />
     </div>
   );
 }

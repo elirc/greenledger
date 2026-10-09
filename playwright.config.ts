@@ -15,6 +15,8 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: process.env.BASE_URL ?? "http://localhost:3000",
+    actionTimeout: 20_000,
+    navigationTimeout: 60_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     viewport: { width: 390, height: 844 }, // mobile-first, like the spec's users

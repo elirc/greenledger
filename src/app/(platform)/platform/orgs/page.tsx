@@ -15,7 +15,10 @@ export default async function PlatformOrgsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Organisations" description={`${orgs.length} farms`} />
+      <PageHeader
+        title="Organisations"
+        description={`${orgs.length} ${orgs.length === 1 ? "farm" : "farms"}`}
+      />
       {orgs.length === 0 ? (
         <EmptyState
           icon={Building2}

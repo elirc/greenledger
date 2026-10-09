@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Bug, ChevronRight, Plus } from "lucide-react";
+import { EmptyState } from "@/components/common/empty-state";
 import { SectionCard } from "@/components/common/section-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
-import { formatLagosDate, todayLagos } from "@/lib/dates";
+import { formatLagos, formatLagosDate, todayLagos } from "@/lib/dates";
 import { requireMember } from "@/lib/guard";
+import { APPLICATION_TYPE_LABELS } from "@/modules/applications/schema";
+import { listApplications } from "@/modules/applications/queries";
 import { CycleStatusActions } from "@/modules/cycles/components/cycle-status-actions";
 import { CycleStatusBadge } from "@/modules/cycles/components/cycle-status-badge";
 import { getCycle } from "@/modules/cycles/queries";
+import { HarvestList } from "@/modules/harvest/components/harvest-list";
+import { listHarvests } from "@/modules/harvest/queries";
 import { LossList } from "@/modules/losses/components/loss-list";
 import { listPlantLosses } from "@/modules/losses/queries";
 
@@ -44,6 +49,12 @@ export default async function CycleDetailPage({
   const cycle = await getCycle(ctx, id);
   if (!cycle) notFound();
   const losses = await listPlantLosses(ctx, id);
+  const [cycleApplications, cycleHarvests] = await Promise.all([
+    listApplications(ctx, { greenhouseId: cycle.greenhouseId }).then((rows) =>
+      rows.filter((a) => a.cropCycleId === cycle.id).slice(0, 5),
+    ),
+    listHarvests(ctx, { cycleId: cycle.id, limit: 5 }),
+  ]);
 
   const canManage = ctx.role === "owner" || ctx.role === "manager";
   const canLogLoss =
@@ -146,16 +157,62 @@ export default async function CycleDetailPage({
         </Link>
       </SectionCard>
 
-      <SectionCard title="Applications">
-        <p className="text-muted-foreground text-sm">
-          Fertigation and spray records for this cycle arrive in Phase 4.
-        </p>
+      <SectionCard
+        title="Applications"
+        action={
+          <Button asChild variant="outline" size="sm" className="h-9">
+            <Link href="/applications">View all</Link>
+          </Button>
+        }
+      >
+        {cycleApplications.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            No fertigation or sprays logged for this cycle yet.
+          </p>
+        ) : (
+          <ul className="divide-border divide-y">
+            {cycleApplications.map((a) => (
+              <li key={a.id} className="flex min-h-11 items-center gap-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    {APPLICATION_TYPE_LABELS[a.type]} ·{" "}
+                    {a.recipeName ?? "Custom mix"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {formatLagos(a.appliedAt, "dd MMM yyyy HH:mm")} ·{" "}
+                    {a.waterVolumeLitres} L · {a.operatorName}
+                  </p>
+                </div>
+                {a.harvestSafeDate && a.harvestSafeDate > today ? (
+                  <span className="text-status-danger text-xs font-medium">
+                    PHI to {formatLagosDate(a.harvestSafeDate)}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </SectionCard>
 
-      <SectionCard title="Harvests">
-        <p className="text-muted-foreground text-sm">
-          Harvest entries and yield against forecast arrive in Phase 5.
-        </p>
+      <SectionCard
+        title="Harvests"
+        action={
+          canLogLoss ? (
+            <Button asChild variant="outline" size="sm" className="h-9">
+              <Link href="/harvest">Log harvest</Link>
+            </Button>
+          ) : undefined
+        }
+      >
+        {cycleHarvests.length === 0 ? (
+          <EmptyState
+            icon={Plus}
+            title="No harvests yet"
+            description="Picks logged on the Harvest screen appear here."
+          />
+        ) : (
+          <HarvestList harvests={cycleHarvests} showGreenhouse={false} />
+        )}
       </SectionCard>
     </div>
   );

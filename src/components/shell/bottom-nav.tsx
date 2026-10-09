@@ -4,20 +4,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { cn } from "cn";
-import { primaryNav, moreNav, isNavActive } from "./nav-items";
+import type { Role } from "@/lib/permissions";
+import { primaryNav, moreNav, isNavActive, navForRole } from "./nav-items";
 import { MoreSheet } from "./more-sheet";
 
-export function BottomNav() {
+export function BottomNav({ role }: { role?: Role }) {
   const pathname = usePathname();
-  const moreActive = moreNav.some((item) => isNavActive(pathname, item.href));
+  const primary = navForRole(primaryNav, role);
+  const more = navForRole(moreNav, role);
+  const moreActive = more.some((item) => isNavActive(pathname, item.href));
 
   return (
     <nav
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
-      <div className="mx-auto grid h-16 max-w-3xl grid-cols-5">
-        {primaryNav.map((item) => {
+      <div
+        className="mx-auto grid h-16 max-w-3xl"
+        style={{ gridTemplateColumns: `repeat(${primary.length + 1}, 1fr)` }}
+      >
+        {primary.map((item) => {
           const active = isNavActive(pathname, item.href);
           return (
             <Link
@@ -38,6 +44,7 @@ export function BottomNav() {
           );
         })}
         <MoreSheet
+          role={role}
           trigger={
             <button
               type="button"

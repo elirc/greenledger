@@ -11,11 +11,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { moreNav, isNavActive } from "./nav-items";
+import type { Role } from "@/lib/permissions";
+import { moreNav, isNavActive, navForRole } from "./nav-items";
 
-export function MoreSheet({ trigger }: { trigger: React.ReactNode }) {
+export function MoreSheet({
+  trigger,
+  role,
+}: {
+  trigger: React.ReactNode;
+  role?: Role;
+}) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
+  const items = navForRole(moreNav, role);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -25,7 +33,7 @@ export function MoreSheet({ trigger }: { trigger: React.ReactNode }) {
           <SheetTitle>All sections</SheetTitle>
         </SheetHeader>
         <div className="grid grid-cols-3 gap-2 px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
-          {moreNav.map((item) => {
+          {items.map((item) => {
             const active = isNavActive(pathname, item.href);
             return (
               <Link

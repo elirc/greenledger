@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const ctx = await requireMember().catch(() => null);
 
   return (
-    <AppShell>
+    <AppShell role={ctx?.role}>
       {ctx?.org.status === "read_only" ? (
         <ReadOnlyBanner isOwner={ctx.role === "owner"} />
       ) : null}

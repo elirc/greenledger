@@ -7,17 +7,20 @@ import { usePathname } from "next/navigation";
 import { cn } from "cn";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { primaryNav, moreNav, isNavActive } from "./nav-items";
+import type { Role } from "@/lib/permissions";
+import { primaryNav, moreNav, isNavActive, navForRole } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
 export function DesktopSidebar({
   headerSlot,
+  role,
 }: {
   /** Server-rendered extras (notification bell) passed from AppShell. */
   headerSlot?: ReactNode;
+  role?: Role;
 }) {
   const pathname = usePathname();
-  const items = [...primaryNav, ...moreNav];
+  const items = navForRole([...primaryNav, ...moreNav], role);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex">
