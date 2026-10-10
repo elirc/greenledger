@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { env } from "@/lib/env";
 import { db } from "@/db";
 import { member } from "@/db/schema";
 import { AppShell } from "@/components/shell/app-shell";
@@ -14,7 +15,10 @@ export const instant = false;
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/sign-in");
+  if (!session) {
+    // AUTH_AUTOLOGIN (local testing): skip the sign-in screen entirely.
+    redirect(env.AUTH_AUTOLOGIN ? "/api/dev-login" : "/sign-in");
+  }
 
   const membership = await db.query.member.findFirst({
     where: eq(member.userId, session.user.id),

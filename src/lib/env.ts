@@ -8,6 +8,13 @@ const schema = z.object({
   BETTER_AUTH_URL: z.string().default("http://localhost:3000"),
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
   AUTH_MOCK: z.enum(["0", "1"]).default("0"),
+  /**
+   * Local-testing convenience: skip the sign-in screen entirely. "1" signs
+   * in as the demo owner; an email picks another SEEDED demo account. The
+   * dev-login route only accepts @demo.farm / admin@greenledger.local
+   * accounts, so this cannot log into real users. Never set in a deployment.
+   */
+  AUTH_AUTOLOGIN: z.string().optional(),
   ADAPTER_SMS: z.enum(["mock", "termii"]).default("mock"),
   ADAPTER_EMAIL: z.enum(["mock", "resend"]).default("mock"),
   ADAPTER_PAYMENTS: z.enum(["mock", "paystack"]).default("mock"),
